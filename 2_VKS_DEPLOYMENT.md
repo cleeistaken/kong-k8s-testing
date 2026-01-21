@@ -283,9 +283,6 @@ kubectl create secret docker-registry regcred \
 kubectl patch serviceaccount default \
   -p '{"imagePullSecrets": [{"name": "regcred"}]}'
 ```
-<br>
-<br>
-
 
 
 ## Cleanup Procedure
