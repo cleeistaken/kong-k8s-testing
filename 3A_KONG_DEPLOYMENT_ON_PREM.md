@@ -491,27 +491,237 @@ kong-dp-kong-7b49b8754f-4z2rc        1/1     Running     0          2m1s  # <---
 <br>
 
 ## Validation
+### 1. Obtain Proxy IP
+Fetch the LoadBalancer address for the kong-dp service and store it in the PROXY_IP environment variable:
+```bash
+PROXY_IP=$(kubectl get service \
+  --namespace kong kong-dp-kong-proxy \
+  --output jsonpath='{range .status.loadBalancer.ingress[0]}{@.ip}{@.hostname}{end}')
+echo "Proxy IP is: "$PROXY_IP
+```
+<details>
+<summary>Expected output</summary>
 
+```bash
+Proxy IP is: 10.138.216.219
+```
+</details>
+<br>
+<br>
+
+### 2. Test Connection (Failed)
+Make an HTTP request to your $PROXY_IP. This will return a HTTP 404 served by Kong Gateway.
+```bash
+curl --verbose $PROXY_IP/mock/anything 
+```
+
+<details>
+<summary>Expected output</summary>
+
+```bash
+*   Trying 10.138.216.219:80...
+* Connected to 10.138.216.219 (10.138.216.219) port 80
+> GET /mock/anything HTTP/1.1
+> Host: 10.138.216.219
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 404 Not Found               # <---- HTTP/404
+< Date: Tue, 20 Jan 2026 21:00:36 GMT
+< Content-Type: application/json; charset=utf-8
+< Connection: keep-alive
+< Content-Length: 103
+< X-Kong-Response-Latency: 0
+< Server: kong/3.13.0.0-enterprise-edition
+< X-Kong-Request-Id: 555731159aaea053565fec5f96869b69
+< 
+{
+  "message":"no Route matched with those values",
+  "request_id":"555731159aaea053565fec5f96869b69"
+* Connection #0 to host 10.138.216.219 left intact
+```
+</details>
+<br>
+<br>
+
+### 3. Create Port-Forward
+In another terminal, run kubectl port-forward to set up port forwarding and access the Admin API.
+```bash
+kubectl port-forward -n kong service/kong-cp-kong-admin 8001
+```
+
+<details>
+<summary>Expected output</summary>
+
+```bash
+Forwarding from 127.0.0.1:8001 -> 8001
+Forwarding from [::1]:8001 -> 8001
+```
+</details>
+<br>
+<br>
+
+### 4. Create Service and Route
+Create a mock Service and Route.
+```bash
+curl localhost:8001/services -d name=mock -d url="https://httpbin.konghq.com" | jq
+curl localhost:8001/services/mock/routes -d "paths=/mock" | jq
+```
+
+<details>
+<summary>Expected output</summary>
+
+```bash
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   485  100   474  100    11  15125    351 --:--:-- --:--:-- --:--:-- 15645
+{
+  "regex_priority": 0,
+  "destinations": null,
+  "methods": null,
+  "request_buffering": true,
+  "response_buffering": true,
+  "created_at": 1769014956,
+  "headers": null,
+  "strip_path": true,
+  "protocols": [
+    "http",
+    "https"
+  ],
+  "snis": null,
+  "service": {
+    "id": "131f324c-7a0e-4a6d-b245-ac83a6e2ce18"
+  },
+  "tags": null,
+  "id": "9af925fb-5d75-4df0-8e74-d075610b8ef5",
+  "path_handling": "v0",
+  "paths": [
+    "/mock"
+  ],
+  "preserve_host": false,
+  "https_redirect_status_code": 426,
+  "updated_at": 1769014956,
+  "hosts": null,
+  "name": null,
+  "sources": null
+}
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   485  100   474  100    11  15472    359 --:--:-- --:--:-- --:--:-- 16166
+{
+  "regex_priority": 0,
+  "destinations": null,
+  "methods": null,
+  "request_buffering": true,
+  "response_buffering": true,
+  "created_at": 1769015030,
+  "headers": null,
+  "strip_path": true,
+  "protocols": [
+    "http",
+    "https"
+  ],
+  "snis": null,
+  "service": {
+    "id": "131f324c-7a0e-4a6d-b245-ac83a6e2ce18"
+  },
+  "tags": null,
+  "id": "dbb22096-a535-45a9-8486-268f741a91b5",
+  "path_handling": "v0",
+  "paths": [
+    "/mock"
+  ],
+  "preserve_host": false,
+  "https_redirect_status_code": 426,
+  "updated_at": 1769015030,
+  "hosts": null,
+  "name": null,
+  "sources": null
+}
+```
+</details>
+<br>
+<br>
+
+### 5. Test Connection (Success)
+Make an HTTP request to your $PROXY_IP again. This time Kong Gateway will route the request to httpbin.
+```bash
+curl --verbose $PROXY_IP/mock/anything 
+```
+
+<details>
+<summary>Expected output</summary>
+
+```bash
+*   Trying 10.138.216.219:80...
+* Connected to 10.138.216.219 (10.138.216.219) port 80
+> GET /mock/anything HTTP/1.1
+> Host: 10.138.216.219
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 200 OK                   # <---- HTTP/200
+< Content-Type: application/json
+< Content-Length: 498
+< Connection: keep-alive
+< Server: gunicorn/19.9.0
+< Date: Wed, 21 Jan 2026 17:05:58 GMT
+< Access-Control-Allow-Origin: *
+< Access-Control-Allow-Credentials: true
+< X-Kong-Upstream-Latency: 144
+< X-Kong-Proxy-Latency: 0
+< Via: 1.1 kong/3.13.0.0-enterprise-edition
+< X-Kong-Request-Id: 3b28415ba15b0b66ecaabf246a376878
+< 
+{
+  "args": {}, 
+  "data": "", 
+  "files": {}, 
+  "form": {}, 
+  "headers": {
+    "Accept": "*/*", 
+    "Connection": "keep-alive", 
+    "Host": "httpbin.konghq.com", 
+    "User-Agent": "curl/8.5.0", 
+    "X-Forwarded-Host": "10.138.216.219", 
+    "X-Forwarded-Path": "/mock/anything", 
+    "X-Forwarded-Prefix": "/mock", 
+    "X-Kong-Request-Id": "3b28415ba15b0b66ecaabf246a376878"
+  }, 
+  "json": null, 
+  "method": "GET", 
+  "origin": "192.168.3.1", 
+  "url": "http://10.138.216.219/anything"
+}
+* Connection #0 to host 10.138.216.219 left intact
+```
+</details>
+<br>
+<br>
 
 
 
 ## Cleanup Procedure
 
 ```shell
-# Remove kong operator
-helm uninstall kong-operator --namespace kong-system
+# Remove kong 
+helm uninstall kong-dp
+helm uninstall kong-cp
 
-# Delete kong-system namespace
-kubectl delete namespace kong-system
+# Delete Postgres (if deployed)
+kubectl delete cluster kong-cp-db -n kong
+helm uninstall cnpg -n cnpg
+kubectl delete ns cnpg
 
-#Delete the namespace
-kubectl delete namespace $CLUSTER_NAMESPACE_NAME
+# Delete kong namespace
+kubectl delete ns kong
 
 # Switch to supervisor context 
-vcf context use $SUPERVISOR_CONTEXT:$SUPERVISOR_NAMESPACE_NAME
+vcf context use "$SUPERVISOR_CONTEXT":"$SUPERVISOR_NAMESPACE_NAME"
 
-# Delete VKS cluster as defined in vks.yaml
-kubectl delete -f vks.yaml
+# Delete VKS cluster
+kubectl delete "$CLUSTER_NAME"
 ```
 
 

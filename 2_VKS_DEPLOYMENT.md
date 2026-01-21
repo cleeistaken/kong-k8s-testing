@@ -288,14 +288,11 @@ kubectl patch serviceaccount default \
 ## Cleanup Procedure
 
 ```shell
-#Delete the namespace
-kubectl delete namespace $CLUSTER_NAMESPACE_NAME
-
 # Switch to supervisor context 
-vcf context use $SUPERVISOR_CONTEXT:$SUPERVISOR_NAMESPACE_NAME
+vcf context use "$SUPERVISOR_CONTEXT":"$SUPERVISOR_NAMESPACE_NAME"
 
-# Delete VKS cluster as defined in vks.yaml
-kubectl delete -f vks.yaml
+# Delete VKS cluster
+kubectl delete "$CLUSTER_NAME"
 ```
 
 
