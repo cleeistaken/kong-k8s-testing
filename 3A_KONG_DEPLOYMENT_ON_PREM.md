@@ -15,26 +15,7 @@
 
 ## Deployment Procedure
 
-
-### 1. Set environment variables
-To facilitate the creation of multiple deployments in different environments we create and use variables throughout this sample deployment procedure.
-```bash
-# Kong specific variables
-export KONG_PAT="<kong_personal_access_token>"
-```
-<details>
-<summary>Example</summary>
-
-```bash
-# Example
-export KONG_PAT="kpat_abc123..."
-```
-</details>
-<br>
-<br>
-
-
-### 2. Install Kong Helm Charts
+### 1. Install Kong Helm Charts
 Kong provides a Helm chart for deploying Kong Gateway. Add the charts.konghq.com repository and run helm repo update to ensure that you have the latest version of the chart.
 ```bash
 helm repo add kong https://charts.konghq.com
@@ -76,7 +57,7 @@ kong/kong-operator	0.0.1        	2.0.0-alpha.0	Deploy Kong Operator
 <br>
 
 
-### 3. Create namespace 'kong'
+### 2. Create namespace 'kong'
 Create a 'kong' namespace.
 ```bash
 kubectl create namespace kong
@@ -117,7 +98,7 @@ vmware-system-tkg                    Active   25m
 <br>
 
 
-### 4. Create a Kong Gateway Enterprise License 
+### 3. Create a Kong Gateway Enterprise License 
 Create a Kong Gateway Enterprise license secret.
 
 **Note**. Ensure you are in the directory that contains a license.json file before running this command.
@@ -137,7 +118,7 @@ secret/kong-enterprise-license created
 <br>
 
 
-### 5. Create clustering certificates 
+### 4. Create clustering certificates 
 Kong Gateway uses mTLS to secure the control plane/data plane communication when running in hybrid mode. We Generate a TLS certificate using OpenSSL.
 ```bash
 openssl req -new -x509 -nodes -newkey ec:<(openssl ecparam -name secp384r1) \
@@ -166,7 +147,7 @@ ls -l tls*
 <br>
 
 
-### 6. Create Kubernetes secret
+### 5. Create Kubernetes secret
 Create a Kubernetes secret containing the certificate.
 ```bash
 kubectl create secret tls kong-cluster-cert \
@@ -185,7 +166,7 @@ secret/kong-cluster-cert created
 <br>
 
 
-### 7. Deploy Postgres Database (Optional)
+### 6. Deploy Postgres Database (Optional)
 If you want to deploy a Postgres database within the cluster for testing purposes, you can install the Cloud Native Postgres operator within your cluster.
 
 **Note**. The postgres manifest contains a username and password that should be changed.
@@ -270,7 +251,7 @@ secret/kong-db-secret created
 <br>
 <br>
 
-### 8. Create control plane manifest
+### 7. Create control plane manifest
 The control plane contains all Kong Gateway configurations. The configuration is stored in a PostgreSQL database.
 
 **Note 1**. The following manifest connects to a local Postgres instance that was optionally configured in the previous step. Update the Database section with the appropriate values.
@@ -345,7 +326,7 @@ proxy:
 <br>
 
 
-### 9. Install the control plane
+### 8. Install the control plane
 ```bash
 helm install kong-cp kong/kong \
  --namespace kong \
@@ -394,7 +375,7 @@ kong-cp-kong-init-migrations-j6kng   0/1     Completed   0          4m14s
 <br>
 
 
-### 10. Create data plane manifest
+### 9. Create data plane manifest
 ```bash
 echo '
 # Do not use Kong Ingress Controller
@@ -442,7 +423,7 @@ manager:
 
 ```
 
-### 11. Install the data plane
+### 10. Install the data plane
 ```bash
 helm install kong-dp kong/kong \
  --namespace kong \
