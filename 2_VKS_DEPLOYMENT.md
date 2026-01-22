@@ -234,41 +234,7 @@ kong-vks-trdx9-gmtbm                     Ready    control-plane   38m   v1.34.1+
 <br>
 <br>
 
-
-### 9. Create namespace
-Create a namespace on the VKS cluster
-```bash
-kubectl create namespace $CLUSTER_NAMESPACE_NAME
-```
-
-<details>
-<summary>Expected output</summary>
-
-```bash
-namespace/kong-ns created
-```
-</details>
-<br>
-<br>
-
-
-### 10. Update context to use namespace
-```bash
-kubectl config set-context --current --namespace=$CLUSTER_NAMESPACE_NAME
-```
-
-<details>
-<summary>Expected output</summary>
-
-```bash
-Context "kong-vks-ctx:kong-vks" modified.
-```
-</details>
-<br>
-<br>
-
-
-### 11. (Optional) Create Secret with Docker.io Credentials
+### 9. (Optional) Create Secret with Docker.io Credentials
 May be required if the deployment hits errors about the site hitting image pull limits.
 ```bash
 # Create secret with Docker login credentials in Kubernetes

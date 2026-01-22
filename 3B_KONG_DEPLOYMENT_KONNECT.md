@@ -288,7 +288,7 @@ ingressController:
   
 image:
  repository: kong/kong-gateway
- tag: ""
+ tag: "3.13"
   
 # Mount the secret created earlier
 secretVolumes:
@@ -359,10 +359,164 @@ Kong: https://docs.konghq.com/kubernetes-ingress-controller/latest/guides/gettin
 
 ```
 </details>
+<details>
+<summary>Test Command: Get pods</summary>
+
+```shell
+# Get Pods
+kubectl get pods -o wide
+
+# Expected output: 
+NAME                         READY   STATUS    RESTARTS   AGE     IP            NODE                                     NOMINATED NODE   READINESS GATES
+kong-kong-abcd123456-9hf4l   1/1     Running   0          4m21s   192.168.1.2   kong-vks-node-pool-4-4s2zp-4dcwb-mb5nt   <none>           <none>
+```
+</details>
+<details>
+<summary>Test Command: Curl Proxy</summary>
+
+```shell
+# Get IP and Port
+HOST=$(kubectl get svc --namespace kong kong-kong-proxy -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+PORT=$(kubectl get svc --namespace kong kong-kong-proxy -o jsonpath='{.spec.ports[0].port}')
+export PROXY_IP=${HOST}:${PORT}
+curl -s $PROXY_IP | jq
+
+# Expected output: 
+# This is expected if no services and routes have been setup
+{
+  "message":"no Route matched with those values",
+  "request_id":"259af8281dd2d939b8fe081564445f20"
+}
+```
+</details>
 <br>
 <br>
 
+
 ## Validation
+### 1. Verify Control Plane 
+Ensure the control plane created in [Step 6](#6-Create-Control-Plane) is showing up in the [Kong Gateway Manager](https://cloud.konghq.com/us/gateway-manager/).
+<details>
+<summary>Images</summary>
+
+![Kong Control Panel Gateways](images/img_18.png "Kong Gateways")
+</details>
+<br>
+<br>
+
+### 2. Verify Data Plane
+Ensure the data plane created in [Step 10](#10-Deploy-Data-Plane) is showing up in the [Kong Gateway Manager](https://cloud.konghq.com/us/gateway-manager/) under **Data Plane Nodes**.
+<details>
+<summary>Images</summary>
+
+![Kong Control Panel Data Planes](images/img_19.png "Data Plane Nodes")
+</details>
+<br>
+<br>
+
+
+### 3. Add Kong-Air Service and Route
+1. Select gateway (e.g. demo-control-plane)
+2. On the control plane, select **Add a service and route**.
+3. On the **Configure New API** page, select **Get Flight Details**.
+4. The Service fields should automatically populate
+   * Service Name: Kong-Air-Flights-API
+   * Service URL: https://api.kong-air.com/flights
+5. The Route fields should automatically populate
+   * Route Name: Kong-Air-Flights-API
+   * Route Path: /first-path
+6. Click **Save**
+7. On the **Routes** tab, ensure the new route is listed.
+
+<details>
+<summary>Images</summary>
+
+![vSphere login with VCF SSO](images/img_20.png "vSphere Login")
+![vSphere login with VCF SSO](images/img_21.png "vSphere Login")
+![vSphere login with VCF SSO](images/img_22.png "vSphere Login")
+![vSphere login with VCF SSO](images/img_23.png "vSphere Login")
+</details>
+<br>
+<br>
+
+### 4. Test Route
+Connect to the new route.
+```bash
+HOST=$(kubectl get svc --namespace kong kong-kong-proxy -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+PORT=$(kubectl get svc --namespace kong kong-kong-proxy -o jsonpath='{.spec.ports[0].port}')
+export PROXY_IP=${HOST}:${PORT}
+curl -s $PROXY_IP/first-path | jq
+```
+<details>
+<summary>Expected output</summary>
+
+```json
+[
+  {
+    "number": "KA0284",
+    "route_id": "LHR-JFK",
+    "scheduled_arrival": "2024-04-05T08:25:00Z",
+    "scheduled_departure": "2024-04-05T16:05:00Z"
+  },
+  {
+    "number": "KA0285",
+    "route_id": "LHR-SFO",
+    "scheduled_arrival": "2024-04-03T11:10:00Z",
+    "scheduled_departure": "2024-04-03T22:15:00Z"
+  },
+  {
+    "number": "KA0286",
+    "route_id": "LHR-DXB",
+    "scheduled_arrival": "2024-03-04T12:40:00Z",
+    "scheduled_departure": "2024-03-04T19:45:00Z"
+  },
+  {
+    "number": "KA0287",
+    "route_id": "LHR-HKG",
+    "scheduled_arrival": "2024-02-10T17:40:00Z",
+    "scheduled_departure": "2024-02-11T06:20:00Z"
+  },
+  {
+    "number": "KA0288",
+    "route_id": "LHR-BOM",
+    "scheduled_arrival": "2024-02-13T09:30:00Z",
+    "scheduled_departure": "2024-02-13T18:40:00Z"
+  },
+  {
+    "number": "KA0289",
+    "route_id": "LHR-HND",
+    "scheduled_arrival": "2024-04-01T08:55:00Z",
+    "scheduled_departure": "2024-04-01T22:35:00Z"
+  },
+  {
+    "number": "KA0290",
+    "route_id": "LHR-CPT",
+    "scheduled_arrival": "2024-01-01T10:00:00Z",
+    "scheduled_departure": "2024-01-01T22:35:00Z"
+  },
+  {
+    "number": "KA0291",
+    "route_id": "LHR-SYD",
+    "scheduled_arrival": "2023-12-31T11:59:00Z",
+    "scheduled_departure": "2024-01-01T22:15:00Z"
+  },
+  {
+    "number": "KA0292",
+    "route_id": "LHR-SIN",
+    "scheduled_arrival": "2024-06-01T03:00:00Z",
+    "scheduled_departure": "2024-06-01T16:15:00Z"
+  },
+  {
+    "number": "KA0293",
+    "route_id": "LHR-LAX",
+    "scheduled_arrival": "2024-04-03T11:10:00Z",
+    "scheduled_departure": "2024-04-03T22:15:00Z"
+  }
+]
+```
+</details>
+<br>
+<br>
 
 
 ## Cleanup Procedure
