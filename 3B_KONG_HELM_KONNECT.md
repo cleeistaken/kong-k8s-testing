@@ -1,7 +1,7 @@
-# Kong Deployment
+# Kong Helm Konnect Deployment
 ## Versions
-* Kong AI Gateway 3.13
-* vSphere Kubernetes 3.5 / VKr 1.34
+* Kong Gateway 3.9
+* vSphere Kubernetes 3.5.0 / VKr 1.34.1
 
 ## References
 * https://developer.konghq.com/gateway/install/kubernetes/konnect/
@@ -46,12 +46,11 @@ helm repo update kong
 Hang tight while we grab the latest from your chart repositories...
 ...Successfully got an update from the "kong" chart repository
 Update Complete. ⎈Happy Helming!⎈
-
 ```
 </details>
 
 <details>
-<summary>Test command: Get Kong operation versions</summary>
+<summary>Test command: Get Kong operator versions</summary>
 
 ```bash
 helm search repo kong/kong-operator  --versions

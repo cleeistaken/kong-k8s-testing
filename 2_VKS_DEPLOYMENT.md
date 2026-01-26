@@ -1,6 +1,6 @@
 # VKS Deployment
 ## Versions
-* vSphere Kubernetes 3.5 / VKr 1.34
+* vSphere Kubernetes 3.5.0 / VKr 1.34.1
 
 ## References
 * [Command line tool (kubectl)](https://kubernetes.io/docs/reference/kubectl/)
