@@ -1,15 +1,15 @@
 # Kong VKS Deployment
 
 ## Versions
-* Kong AI Gateway 3.13
+* Kong Operator 2.0.6
 * vSphere Kubernetes 3.5 / VKr 1.34
 
 ## References
 * [vSphere Supervisor Platform](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/vsphere-supervisor-installation-and-configuration.html)
 * [Command line tool (kubectl)](https://kubernetes.io/docs/reference/kubectl/)
 * [Installing and Using VCF CLI v9.0](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/building-your-cloud-applications/getting-started-with-the-tools-for-building-applications/installing-and-using-vcf-cli-v9.html)
-* [Install Kong Gateway in Konnect with Helm](https://developer.konghq.com/gateway/install/kubernetes/on-prem/)
-* [Install Kong Gateway on-prem with Helm](https://developer.konghq.com/gateway/install/kubernetes/konnect/)
+* [Install Kong Operator with Helm](https://developer.konghq.com/operator/dataplanes/get-started/kic/install/)
+* [Kong Operator Configuration Options](https://developer.konghq.com/operator/reference/configuration-options/)
 
 
 ## Get Files 

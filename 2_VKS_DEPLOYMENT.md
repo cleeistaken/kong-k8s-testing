@@ -5,6 +5,7 @@
 ## References
 * [Command line tool (kubectl)](https://kubernetes.io/docs/reference/kubectl/)
 * [Installing and Using VCF CLI v9.0](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vcf-9-0-and-later/9-0/building-your-cloud-applications/getting-started-with-the-tools-for-building-applications/installing-and-using-vcf-cli-v9.html)
+* [Add-on Packages for VKS (e.g. cert-manager)](https://techdocs.broadcom.com/us/en/vmware-cis/vcf/vsphere-supervisor-services-and-standalone-components/latest/managing-vsphere-kuberenetes-service-clusters-and-workloads/managing-add-ons-in-vks-clusters.html)
 
 ## Requirements
 ### Linux CLI Tools
@@ -69,13 +70,45 @@ rm -rf ~/.config/vcf/
 <br>
 <br>
 
+### 3. Setup VCF and kubectl command completion
+This step is not required but helps with commands
+```shell
+# (Optional) Add autocomplete and shorthand 'k' for Kubectl (bash shell)
+cat << 'EOF' >> ~/.bashrc 
+echo "source <(vcf completion bash)"
+source <(kubectl completion bash)
+alias k=kubectl 
+complete -o default -F __start_kubectl k
+EOF
+source ~/.bashrc 
+```
+<br>
+<br>
 
-### 3. Create supervisor context 
+### 4. Obtain vCenter certificates 
+This step is required for TLS comms to vCenter
+```shell
+# Get vCenter certs & install
+# Download the zip file to /tmp using curl (insecure mode required)
+VCENTER_IP=<vCenter IP>
+curl -k -fsSL -o /tmp/vccert.zip https://${VCENTER_IP}/certs/download.zip
+
+# Unzip and copy to SSL directory
+unzip /tmp/vccert.zip -d /tmp
+sudo cp /tmp/certs/lin/* /etc/ssl/certs
+
+# Update system certs
+sudo update-ca-certificates
+```
+<br>
+<br>
+
+
+### 5. Create supervisor context 
 ```bash
 vcf context create "$SUPERVISOR_CONTEXT" \
   --endpoint "$SUPERVISOR_IP" \
-  --username "$SUPERVISOR_USERNAME" \
-  --insecure-skip-tls-verify
+  --username "$SUPERVISOR_USERNAME"
 ```
 
 <details>
@@ -109,7 +142,7 @@ To change context, use `vcf context use <context_name>`
 <br>
 
 
-### 4. Set supervisor context
+### 6. Set supervisor context
 ```bash
 vcf context use "$SUPERVISOR_CONTEXT":"$SUPERVISOR_NAMESPACE_NAME"
 ```
@@ -129,7 +162,7 @@ vcf context use "$SUPERVISOR_CONTEXT":"$SUPERVISOR_NAMESPACE_NAME"
 <br>
 
 
-### 5. Create VKS cluster
+### 7. Create VKS cluster
 In this step we create a VKS cluster as defined in vks.yaml. 
 ```bash
 sed "s/cluster-vks/$CLUSTER_NAME/" vks.yaml | kubectl apply -f -
@@ -146,7 +179,7 @@ cluster.cluster.x-k8s.io/kong-vks created
 <br>
 
 
-### 6. Wait for VKS cluster creation
+### 8. Wait for VKS cluster creation
 Wait until output shows "Available: True" 
 ```bash
 kubectl get cluster "$CLUSTER_NAME" --watch
@@ -167,14 +200,13 @@ kong-vks   builtin-generic-v3.5.0   True        1            1              1   
 <br>
 
 
-### 7. Connect to VKS cluster
+### 9. Connect to VKS cluster
 ```shell
 vcf context create "$CLUSTER_CONTEXT" \
   --endpoint "$SUPERVISOR_IP" \
   --username "$SUPERVISOR_USERNAME" \
   --workload-cluster-namespace="$SUPERVISOR_NAMESPACE_NAME" \
-  --workload-cluster-name="$CLUSTER_NAME" \
-  --insecure-skip-tls-verify 
+  --workload-cluster-name="$CLUSTER_NAME" 
 ```
 
 <details>
@@ -200,7 +232,7 @@ To change context, use `vcf context use <context_name>`
 <br>
 
 
-### 8. Set VKS Cluster Context
+### 10. Set VKS Cluster Context
 ```bash
 vcf context use "$CLUSTER_CONTEXT":"$CLUSTER_NAME"
 ```
@@ -234,7 +266,7 @@ kong-vks-trdx9-gmtbm                     Ready    control-plane   38m   v1.34.1+
 <br>
 <br>
 
-### 9. (Optional) Create Secret with Docker.io Credentials
+### 11. (Optional) Create Secret with Docker.io Credentials
 May be required if the deployment hits errors about the site hitting image pull limits.
 ```bash
 # Create secret with Docker login credentials in Kubernetes
@@ -287,8 +319,9 @@ kubectl get svc <service_name>-external
 # Get TKR releases
 kubectl get tkr -l '!kubernetes.vmware.com/kubernetesrelease'
 
-# Get TKE releaase specs
+# Get TKR releaase specs
 # e.g. kubectl get tkr 'v1.34.1---vmware.1-vkr.4' -o yaml
 kubectl get tkr TKR_NAME -o yaml  
 ```
+
 
