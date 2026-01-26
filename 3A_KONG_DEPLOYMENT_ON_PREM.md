@@ -443,7 +443,7 @@ curl --verbose $PROXY_IP/mock/anything
 <br>
 
 
-### 1. Add a test service ('echo')
+### 3. Add a test service ('echo')
 Create a test service that will respond to requests.
 ```bash
 kubectl -n kong apply -f https://developer.konghq.com/manifests/kic/echo-service.yaml
@@ -460,7 +460,7 @@ deployment.apps/echo created
 <br>
 
 
-### 2. Create a route to the test service
+### 4. Create a route to the test service
 Configure HTTPRoute.
 ```bash
 kubectl apply -f - <<'EOF'
@@ -498,7 +498,7 @@ httproute.gateway.networking.k8s.io/kong-admin created
 curl -i http://$PROXY_IP/ -H 'Host: echo.content.tmm.broadcom.lab'
 
 
-### 3. Test using curl
+### 5. Test using curl
 Test the echo service using curl.
 ```bash
 # http
