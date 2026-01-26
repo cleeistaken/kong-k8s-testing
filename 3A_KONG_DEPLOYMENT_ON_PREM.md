@@ -42,7 +42,7 @@ vcf addon install create cert-manager --cluster-name vks-cluster -y
 Addon 'cert-manager' is being installed in the cluster vks-cluster
 
 
-vcf addon install list --cluster-name kubernetes-cluster-kmnr
+vcf addon install list --cluster-name vks-cluster
   ADDONNAME                   NAMESPACE             PAUSED  READY  DELETE/UPGRADE
   cert-manager                supervisor-namespace  false   False  Allowed
 ```
