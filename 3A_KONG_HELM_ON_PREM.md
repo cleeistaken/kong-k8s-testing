@@ -1,7 +1,7 @@
-# Kong On-Prem Deployment
+# Kong Helm On-Prem Deployment
 ## Versions
 * Kong Gateway 3.9
-* vSphere Kubernetes 3.5 / VKr 1.34
+* vSphere Kubernetes 3.5.0 / VKr 1.34.1
 
 ## References
 * https://developer.konghq.com/gateway/install/kubernetes/on-prem/
@@ -35,7 +35,7 @@ Update Complete. ⎈Happy Helming!⎈
 </details>
 
 <details>
-<summary>Test command: Get Kong operation versions</summary>
+<summary>Test command: Get Kong operator versions</summary>
 
 ```bash
 helm search repo kong/kong-operator  --versions
