@@ -22,5 +22,7 @@ git clone https://github.com/cleeistaken/kong-k8s-testing.git
 * [Step 1. Configure Supervisor](1_CONFIGURE_SUPERVISOR.md)
 * [Step 2. VKS Deployment](2_VKS_DEPLOYMENT.md)
 * Kong Deployment
-  * [Option 1: Step 3a. Kong Deployment - On-Prem](3A_KONG_HELM_ON_PREM.md)
-  * [Option 2: Step 3b. Kong Deployment - Konnect](3B_KONG_HELM_KONNECT.md) 
+  * [Step 3 - Option A - Kong Deployment - Helm - On-Prem](3A_KONG_HELM_ON_PREM.md)
+  * [Step 3 - Option B - Kong Deployment - Helm - Konnect](3B_KONG_HELM_KONNECT.md) 
+  * [Step 3 - Option C - Kong Deployment - Operator - On-Prem](3C_KONG_OPERATOR_ON_PREM.md) 
+  * [Step 3 - Option D - Kong Deployment - Operator - Konnect](3D_KONG_OPERATOR_KONNECT.md) 
