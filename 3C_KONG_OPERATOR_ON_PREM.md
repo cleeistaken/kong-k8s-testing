@@ -1,59 +1,53 @@
-# Kong Operator On-Prem Deployment
+# Kong Helm On-Prem Deployment
 ## Versions
 * Kong Gateway 3.9
-* vSphere Kubernetes 3.5 / VKr 1.34
+* vSphere Kubernetes 3.5.0 / VKr 1.34.1
 
 ## References
 * https://developer.konghq.com/operator/dataplanes/get-started/kic/install/
-* https://cert-manager.io/docs/installation/
 
 ## Requirements
 ### CLI Tools
-* kubectl cli v1.34: https://dl.k8s.io/release/v1.34.0/bin/linux/amd64/kubectl
+* kubectl cli v1.35: https://dl.k8s.io/release/v1.35.0/bin/linux/amd64/kubectl
 * vcf cli v9.0.1: https://packages.broadcom.com/artifactory/vcf-distro/vcf-cli/linux/amd64/v9.0.1/
 * helm cli v3.19: https://get.helm.sh/helm-v3.19.0-linux-amd64.tar.gz
 
-## Deployment Procedure Step 1 - Operator
+## Deployment Procedure
 
-### 1. Create namespace 'kong'
-Create a 'kong' namespace.
+### 1. Install Cert-Manager Addon
+Install the VKS addon for Cert Manager
 ```bash
-kubectl create namespace kong
+# Switch to the supervisor context
+vcf context use <SUPERVISOR_CONTEXT>
+
+# List available cert-manager release
+vcf addon available list cert-manager
+
+# Install cert-manager add-on
+vcf addon install create cert-manager --cluster-name <VKS_CLUSTER_NAME> -y
+
+# Verify the install
+vcf addon install list --cluster-name <VKS_CLUSTER_NAME>
 ```
 <details>
 <summary>Expected output</summary>
 
 ```bash
-namespace/kong created
+vcf addon available list cert-manager
+  NAMESPACE                 ADDONNAME     VERSION                ADDON-RELEASE-NAME                                        PACKAGE
+  vmware-system-vks-public  cert-manager  1.18.2+vmware.2-vks.2  cert-manager.kubernetes.vmware.com.1.18.2-vmware.2-vks.2  cert-manager.kubernetes.vmware.com/1.18.2+vmware.2-vks.2
+
+
+vcf addon install create cert-manager --cluster-name vks-cluster -y
+Addon 'cert-manager' is being installed in the cluster vks-cluster
+
+
+vcf addon install list --cluster-name vks-cluster
+  ADDONNAME                   NAMESPACE             PAUSED  READY  DELETE/UPGRADE
+  cert-manager                supervisor-namespace  false   False  Allowed
 ```
 </details>
-<details>
-<summary>Test command: List Namespaces</summary>
 
-```bash
-# List certificates
-kubectl get namespaces
-
-# Expected output
-NAME                                 STATUS   AGE
-default                              Active   26m
-kong                                 Active   14m # <---- kong namespace
-kong-vks-ns                          Active   22m
-kube-node-lease                      Active   26m
-kube-public                          Active   26m
-kube-system                          Active   26m
-secretgen-controller                 Active   25m
-tkg-system                           Active   25m
-velero-vsphere-plugin-backupdriver   Active   25m
-vmware-system-antrea                 Active   25m
-vmware-system-auth                   Active   25m
-vmware-system-cloud-provider         Active   25m
-vmware-system-csi                    Active   25m
-vmware-system-tkg                    Active   25m
-```
-</details>
-<br>
-<br>
 
 ### 2. Install Kong Helm Charts
 Kong provides a Helm chart for deploying Kong Gateway. Add the charts.konghq.com repository and run helm repo update to ensure that you have the latest version of the chart.
@@ -79,8 +73,6 @@ Update Complete. ⎈Happy Helming!⎈
 ```bash
 helm search repo kong/kong-operator  --versions
 
-
-# Expected Output
 NAME              	CHART VERSION	APP VERSION  	DESCRIPTION         
 kong/kong-operator	1.0.2        	2.0          	Deploy Kong Operator
 kong/kong-operator	1.0.1        	2.0          	Deploy Kong Operator
@@ -98,65 +90,63 @@ kong/kong-operator	0.0.1        	2.0.0-alpha.0	Deploy Kong Operator
 <br>
 
 
-### 3. Install Cert Manager (Optional)
-If you want cert-manager to issue and rotate the admission and conversion webhook certificates, install cert-manager to your cluster and enable cert-manager integration by passing the ```--set global.webhooks.options.certManager.enabled=true``` argument.
-
+### 2. Create namespace 'kong'
+Create a 'kong' namespace and set privileged permissions.
 ```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.19.2/cert-manager.yaml
+kubectl create namespace kong
+kubectl label ns --overwrite kong pod-security.kubernetes.io/enforce=privileged
 ```
 <details>
 <summary>Expected output</summary>
 
 ```bash
-namespace/cert-manager created
-customresourcedefinition.apiextensions.k8s.io/challenges.acme.cert-manager.io created
-customresourcedefinition.apiextensions.k8s.io/orders.acme.cert-manager.io created
-customresourcedefinition.apiextensions.k8s.io/certificaterequests.cert-manager.io created
-customresourcedefinition.apiextensions.k8s.io/certificates.cert-manager.io created
-customresourcedefinition.apiextensions.k8s.io/clusterissuers.cert-manager.io created
-customresourcedefinition.apiextensions.k8s.io/issuers.cert-manager.io created
-serviceaccount/cert-manager-cainjector created
-serviceaccount/cert-manager created
-serviceaccount/cert-manager-webhook created
-clusterrole.rbac.authorization.k8s.io/cert-manager-cainjector created
-clusterrole.rbac.authorization.k8s.io/cert-manager-controller-issuers created
-clusterrole.rbac.authorization.k8s.io/cert-manager-controller-clusterissuers created
-clusterrole.rbac.authorization.k8s.io/cert-manager-controller-certificates created
-clusterrole.rbac.authorization.k8s.io/cert-manager-controller-orders created
-clusterrole.rbac.authorization.k8s.io/cert-manager-controller-challenges created
-clusterrole.rbac.authorization.k8s.io/cert-manager-controller-ingress-shim created
-clusterrole.rbac.authorization.k8s.io/cert-manager-cluster-view created
-clusterrole.rbac.authorization.k8s.io/cert-manager-view created
-clusterrole.rbac.authorization.k8s.io/cert-manager-edit created
-clusterrole.rbac.authorization.k8s.io/cert-manager-controller-approve:cert-manager-io created
-clusterrole.rbac.authorization.k8s.io/cert-manager-controller-certificatesigningrequests created
-clusterrole.rbac.authorization.k8s.io/cert-manager-webhook:subjectaccessreviews created
-clusterrolebinding.rbac.authorization.k8s.io/cert-manager-cainjector created
-clusterrolebinding.rbac.authorization.k8s.io/cert-manager-controller-issuers created
-clusterrolebinding.rbac.authorization.k8s.io/cert-manager-controller-clusterissuers created
-clusterrolebinding.rbac.authorization.k8s.io/cert-manager-controller-certificates created
-clusterrolebinding.rbac.authorization.k8s.io/cert-manager-controller-orders created
-clusterrolebinding.rbac.authorization.k8s.io/cert-manager-controller-challenges created
-clusterrolebinding.rbac.authorization.k8s.io/cert-manager-controller-ingress-shim created
-clusterrolebinding.rbac.authorization.k8s.io/cert-manager-controller-approve:cert-manager-io created
-clusterrolebinding.rbac.authorization.k8s.io/cert-manager-controller-certificatesigningrequests created
-clusterrolebinding.rbac.authorization.k8s.io/cert-manager-webhook:subjectaccessreviews created
-role.rbac.authorization.k8s.io/cert-manager-cainjector:leaderelection created
-role.rbac.authorization.k8s.io/cert-manager:leaderelection created
-role.rbac.authorization.k8s.io/cert-manager-tokenrequest created
-role.rbac.authorization.k8s.io/cert-manager-webhook:dynamic-serving created
-rolebinding.rbac.authorization.k8s.io/cert-manager-cainjector:leaderelection created
-rolebinding.rbac.authorization.k8s.io/cert-manager:leaderelection created
-rolebinding.rbac.authorization.k8s.io/cert-manager-tokenrequest created
-rolebinding.rbac.authorization.k8s.io/cert-manager-webhook:dynamic-serving created
-service/cert-manager-cainjector created
-service/cert-manager created
-service/cert-manager-webhook created
-deployment.apps/cert-manager-cainjector created
-deployment.apps/cert-manager created
-deployment.apps/cert-manager-webhook created
-mutatingwebhookconfiguration.admissionregistration.k8s.io/cert-manager-webhook created
-validatingwebhookconfiguration.admissionregistration.k8s.io/cert-manager-webhook created
+namespace/kong created
+namespace/kong labeled 
+```
+</details>
+<details>
+<summary>Test command: List Namespaces</summary>
+
+```bash
+# List ns
+kubectl get namespaces
+
+# Expected output
+NAME                                 STATUS   AGE
+default                              Active   26m
+kong                                 Active   14m # <---- kong namespace
+kong-vks-ns                          Active   22m
+kube-node-lease                      Active   26m
+kube-public                          Active   26m
+kube-system                          Active   26m
+secretgen-controller                 Active   25m
+tkg-system                           Active   25m
+velero-vsphere-plugin-backupdriver   Active   25m
+vmware-system-antrea                 Active   25m
+vmware-system-auth                   Active   25m
+vmware-system-cloud-provider         Active   25m
+vmware-system-csi                    Active   25m
+vmware-system-tkg                    Active   25m
+```
+</details>
+<br>
+<br>
+
+
+### 3. Create a Kong Gateway Enterprise License 
+Create a Kong Gateway Enterprise license secret.
+
+**Note**. Ensure you are in the directory that contains a license.json file before running this command.
+```bash
+kubectl create secret generic kong-enterprise-license \
+  --from-file=license=license.json \
+  --namespace kong
+```
+<details>
+<summary>Expected output</summary>
+
+```bash
+secret/kong-enterprise-license created
 ```
 </details>
 <br>
@@ -164,15 +154,11 @@ validatingwebhookconfiguration.admissionregistration.k8s.io/cert-manager-webhook
 
 
 ### 4. Install Kong Operator
-Install Kong Operator using Helm.
-
-**Note**. We use cert-manager to issue and rotate certificates. If you do not enable this, the chart will generate and inject self-signed certificates automatically. We recommend enabling cert-manager to manage the lifecycle of these certificates.
-
+For release versions see https://github.com/Kong/kong-operator/releases
 ```bash
-helm upgrade --install kong-operator kong/kong-operator \
-  --namespace kong-system \
-  --create-namespace \
-  --set image.tag=2.0.5 \
+helm upgrade --install kong-operator kong/kong-operator -n kong-system \
+  --set image.tag=2.0.6 \
+  --set image.repository=harbor-test.content.tmm.broadcom.lab/proxy/kong/kong-operator
   --set global.webhooks.options.certManager.enabled=true
 ```
 <details>
@@ -180,13 +166,11 @@ helm upgrade --install kong-operator kong/kong-operator \
 
 ```bash
 Release "kong-operator" does not exist. Installing it now.
-I0123 18:20:54.166115  107846 warnings.go:110] "Warning: spec.privateKey.rotationPolicy: In cert-manager >= v1.18.0, the default value changed from `Never` to `Always`."
-I0123 18:20:54.199135  107846 warnings.go:110] "Warning: spec.privateKey.rotationPolicy: In cert-manager >= v1.18.0, the default value changed from `Never` to `Always`."
 NAME: kong-operator
-LAST DEPLOYED: Fri Jan 23 18:20:49 2026
+LAST DEPLOYED: Fri Jan 23 16:49:48 2026
 NAMESPACE: kong-system
 STATUS: deployed
-REVISION: 1
+REVISION: 3
 TEST SUITE: None
 NOTES:
 kong-operator-kong-operator has been installed. Check its status by running:
@@ -199,67 +183,15 @@ For more details, please refer to the following documents:
 * https://developer.konghq.com/operator/dataplanes/konnectextension/
 ```
 </details>
-
-<details>
-<summary>Test command: Get kong-system pods versions</summary>
-
-```bash
-kubectl --namespace kong-system get pods
-
-# Expected Output
-NAME                                                              READY   STATUS    RESTARTS   AGE
-kong-operator-kong-operator-controller-manager-77c669f477-stfmk   1/1     Running   0          66s
-
-```
-
-</details>
 <br>
 <br>
 
 
-### 5. Add License (Optional)
-This tutorial doesn’t require a license, but you can add one using KongLicense. This assumes that your license is available in ./license.json.
+### 5. Create Kong Gateway Configuration
+Create Kong Gateway Configuration.
 ```bash
-echo "
-apiVersion: configuration.konghq.com/v1alpha1
-kind: KongLicense
-metadata:
- name: kong-license
-rawLicenseString: '$(cat ./license.json)'
-" | kubectl apply -f -
-```
-<details>
-<summary>Expected output</summary>
-
-```bash
-konglicense.configuration.konghq.com/kong-license created
-```
-</details>
-
-
-### 6. Wait for Kong Operator Ready
-```bash
-kubectl wait deployment/kong-operator-kong-operator-controller-manager \
-  --namespace kong-system  \
-  --for=condition=Available=true \
-  --timeout=120s
-```
-
-<details>
-<summary>Expected output</summary>
-
-```bash
-deployment.apps/kong-operator-kong-operator-controller-manager condition met
-```
-</details>
-<br>
-<br>
-
-## Deployment Procedure Step 2 - Gateway
-
-### 1. Create Gateway Configuration
-```bash
-echo 'kind: GatewayConfiguration
+kubectl apply -f - <<'EOF'
+kind: GatewayConfiguration
 apiVersion: gateway-operator.konghq.com/v2beta1
 metadata:
   name: kong
@@ -271,22 +203,49 @@ spec:
         spec:
           containers:
           - name: proxy
-            image: kong:3.9.1' | kubectl apply -f -
+            image: kong/kong:3.9.1 
+EOF
+
+# Verify kong gw
+kubectl -n kong describe gatewayconfigurations.gateway-operator.konghq.com kong
 ```
 <details>
 <summary>Expected output</summary>
 
 ```bash
-gatewayconfiguration.gateway-operator.konghq.com/kong created
+gatewayconfiguration.gateway-operator.konghq.com/kong configured
+
+kubectl -n kong describe gatewayconfigurations.gateway-operator.konghq.com kong
+Name:         kong
+Namespace:    kong
+Labels:       <none>
+Annotations:  <none>
+API Version:  gateway-operator.konghq.com/v2beta1
+Kind:         GatewayConfiguration
+Metadata:
+  Creation Timestamp:  2026-01-23T15:28:32Z
+  Generation:          1
+  Resource Version:    89744946
+  UID:                 db70e58e-8ce0-473c-80c3-1e4f44af8d28
+Spec:
+  Data Plane Options:
+    Deployment:
+      Pod Template Spec:
+        Spec:
+          Containers:
+            Image:  kong:3.9.1
+            Name:   proxy
+Events:   
 ```
 </details>
 <br>
 <br>
 
-### 2. Create GatewayClass
-To use the Gateway API resources to configure your Routes, you need to create a GatewayClass instance and create a Gateway resource that listens on the ports that you need.
+
+### 6. Create a Kong Gateway Class & Gateway
+Create a Kong Gateway Class & Gateway.
 ```bash
-echo '
+kubectl apply -f - <<'EOF'
 kind: GatewayClass
 apiVersion: gateway.networking.k8s.io/v1
 metadata:
@@ -300,17 +259,36 @@ spec:
     name: kong
     namespace: kong
 ---
-kind: Gateway
 apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
 metadata:
   name: kong
   namespace: kong
 spec:
   gatewayClassName: kong
   listeners:
-  - name: http
-    protocol: HTTP
-    port: 80' | kubectl apply -f -
+    - name: https
+      hostname: kong-admin.content.tmm.broadcom.lab
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: kong-admin-tls
+            group: ""
+      allowedRoutes:
+        namespaces:
+          from: Same
+
+    - name: http
+      hostname: echo.content.tmm.broadcom.lab
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+EOF
 ```
 <details>
 <summary>Expected output</summary>
@@ -320,60 +298,158 @@ gatewayclass.gateway.networking.k8s.io/kong created
 gateway.gateway.networking.k8s.io/kong created
 ```
 </details>
+<br>
+<br>
+
+
+### 7. Create Certificate 
+Create a certificate for Kong from cert-manager. Here we create a self-signed certificate (amend as needed)
+```bash
+# Here we'll create a self-signed cluster issuer
+kubectl apply -f - <<'EOF'
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+spec:
+  selfSigned: {}
+EOF
+
+
+# Create a certificate using the self-signed issuer
+kubectl apply -f - <<'EOF'
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kong-admin-cert
+  namespace: kong
+spec:
+  secretName: kong-admin-tls
+  secretTemplate:
+    labels:
+      konghq.com/secret: "true"   # required for Kong Operator default selector
+  dnsNames:
+    - kong-admin.content.tmm.broadcom.lab
+  issuerRef:
+    kind: ClusterIssuer
+    name: selfsigned   # Your Issuer/ClusterIssuer
+EOF
+```
 <details>
-<summary>Test command: List Gateways</summary>
+</details>
+<br>
+<br>
+
+
+### 3. Verify Gateway
+Ensure gateway class status is *True* and *Accepted* and gateway has an IP and is *programmed*
 
 ```bash
-# Get gateway 'kong'
-kubectl get gateway kong \
- --namespace kong \
- --output wide
- 
-# Expected output
-NAME   CLASS   ADDRESS          PROGRAMMED   AGE
-kong   kong    10.138.216.219   True         6m21s
+kubectl -n kong describe gatewayclasses.gateway.networking.k8s.io kong
+Name:         kong
+Namespace:
+Labels:       <none>
+Annotations:  <none>
+API Version:  gateway.networking.k8s.io/v1
+Kind:         GatewayClass
+Metadata:
+  Creation Timestamp:  2026-01-23T15:30:20Z
+  Generation:          1
+  Resource Version:    89746251
+  UID:                 a07e9e50-d48b-4378-a738-d3dd0af2a360
+Spec:
+  Controller Name:  konghq.com/gateway-operator
+  Parameters Ref:
+    Group:      gateway-operator.konghq.com
+    Kind:       GatewayConfiguration
+    Name:       kong
+    Namespace:  kong
+Status:
+  Conditions:
+    Last Transition Time:  2026-01-23T15:30:20Z
+    Message:               GatewayClass is accepted
+    Observed Generation:   1
+    Reason:                Accepted
+    Status:                True
+    Type:                  Accepted
+Events:                    <none>
+
+
+kubectl get -n kong gateway kong -o wide
+
+NAME   CLASS   ADDRESS        PROGRAMMED   AGE
+kong   kong    10.163.44.47   True         82m
+```
+<details>
+<summary>Expected output</summary>
+
+```bash
+secret/kong-enterprise-license created
 ```
 </details>
 <br>
 <br>
 
-### 3. Check Programmed Status
-If the **Gateway** has **Programmed** condition set to **True**, you can visit Konnect and see your configuration being synced by the self-managed Control Plane. 
 
-You can verify the **Gateway** was reconciled successfully by checking its **Programmed** condition.
+
+## Validation
+### 1. Obtain Proxy IP
+Fetch the LoadBalancer address for the kong-dp service and store it in the PROXY_IP environment variable:
+```bash
+PROXY_IP=$(kubectl -n kong get svc -o jsonpath='{.items[?(@.spec.type=="LoadBalancer")].status.loadBalancer.ingress[0].ip}')
+echo "Proxy IP is: "$PROXY_IP
+```
+<details>
+<summary>Expected output</summary>
 
 ```bash
-kubectl get -n kong gateway kong \
-  -o=jsonpath='{.status.conditions[?(@.type=="Programmed")]}' | jq
-  ```
+Proxy IP is: 10.138.216.219
+```
+</details>
+<br>
+<br>
+
+### 2. Test Connection (Failed)
+Make an HTTP request to your $PROXY_IP. This will return a HTTP 404 served by Kong Gateway.
+```bash
+curl --verbose $PROXY_IP/mock/anything 
+```
 
 <details>
 <summary>Expected output</summary>
 
-```json
+```bash
+*   Trying 10.138.216.219:80...
+* Connected to 10.138.216.219 (10.138.216.219) port 80
+> GET /mock/anything HTTP/1.1
+> Host: 10.138.216.219
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 404 Not Found               # <---- HTTP/404
+< Date: Tue, 20 Jan 2026 21:00:36 GMT
+< Content-Type: application/json; charset=utf-8
+< Connection: keep-alive
+< Content-Length: 103
+< X-Kong-Response-Latency: 0
+< Server: kong/3.13.0.0-enterprise-edition
+< X-Kong-Request-Id: 555731159aaea053565fec5f96869b69
+< 
 {
-  "lastTransitionTime": "2026-01-23T20:47:20Z",
-  "message": "",
-  "observedGeneration": 1,
-  "reason": "Programmed",
-  "status": "True",
-  "type": "Programmed"
-}
+  "message":"no Route matched with those values",
+  "request_id":"555731159aaea053565fec5f96869b69"
+* Connection #0 to host 10.138.216.219 left intact
 ```
 </details>
 <br>
 <br>
 
-## Deployment Procedure Step 3 - Create a Route
 
-### 1. Configure an Echo Service
-In order to route a request using Kong Gateway we need a Service running in our cluster. Install an echo Service using the following command:
-
+### 3. Add a test service ('echo')
+Create a test service that will respond to requests.
 ```bash
-kubectl apply -f https://developer.konghq.com/manifests/kic/echo-service.yaml \
-  --namespace kong
+kubectl -n kong apply -f https://developer.konghq.com/manifests/kic/echo-service.yaml
 ```
-
 <details>
 <summary>Expected output</summary>
 
@@ -385,64 +461,124 @@ deployment.apps/echo created
 <br>
 <br>
 
-### 2. Create a Route
-Create an HTTPRoute to send any requests that start with /echo to the echo Service.
+
+### 4. Create a route to the test service
+Configure HTTPRoute.
 ```bash
-echo '
-kind: HTTPRoute
+kubectl apply -f - <<'EOF'
 apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
 metadata:
-  name: echo
+  name: echo-http
   namespace: kong
 spec:
   parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: kong
+    - name: kong
+      sectionName: echo-http
+  hostnames:
+    - echo.content.tmm.broadcom.lab
   rules:
     - matches:
         - path:
             type: PathPrefix
-            value: /echo
+            value: /
       backendRefs:
         - name: echo
           port: 1027
-' | kubectl apply -f -
+EOF          
 ```
 <details>
 <summary>Expected output</summary>
 
 ```bash
-httproute.gateway.networking.k8s.io/echo created
+httproute.gateway.networking.k8s.io/kong-admin created
 ```
 </details>
 <br>
 <br>
 
-### 3. Test the Configuration
-Run kubectl get gateway kong -n default to get the IP address for the gateway and set that as the value for the variable PROXY_IP.
-```bash
-export PROXY_IP=$(kubectl get gateway kong -n kong -o jsonpath='{.status.addresses[0].value}')
-curl "$PROXY_IP/echo" --no-progress-meter --fail-with-body 
-```
+curl -i http://$PROXY_IP/ -H 'Host: echo.content.tmm.broadcom.lab'
 
+
+### 5. Test using curl
+Test the echo service using curl.
+```bash
+# http
+curl http://$PROXY_IP/ -H 'Host: echo.content.tmm.broadcom.lab'
+
+# https
+curl -k https://$PROXY_IP/ -H 'Host: echo.content.tmm.broadcom.lab'       
+```
 <details>
 <summary>Expected output</summary>
 
 ```bash
-Welcome, you are connected to node kong-vks-node-pool-1-nl7vd-rmjzn-bdj97.
-Running on Pod echo-79d4b9b8bc-68nkx.
+Welcome, you are connected to node kubernetes-cluster-kmnr-kubernetes-cluster-kmnr-nodepool-eck6qq.
+Running on Pod echo-6f4786c4b4-scth9.
 In namespace kong.
-With IP address 192.168.1.3.
+With IP address 192.168.152.43.
+
+Welcome, you are connected to node kubernetes-cluster-kmnr-kubernetes-cluster-kmnr-nodepool-eck6qq.
+Running on Pod echo-6f4786c4b4-scth9.
+In namespace kong.
+With IP address 192.168.152.43.
 ```
 </details>
 <br>
 <br>
 
 
-## Deployment Procedure Step 4 - Proxy HTTP Traffic
 
-### 1. Configure an Echo Service
-```bash
-kubectl apply -f  https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+
+## Cleanup Procedure
+
+```shell
+# Remove kong 
+helm uninstall kong-dp
+helm uninstall kong-cp
+
+# Delete Postgres (if deployed)
+kubectl delete cluster kong-cp-db -n kong
+helm uninstall cnpg -n cnpg
+kubectl delete ns cnpg
+
+# Delete kong namespace
+kubectl delete ns kong
+
+# Switch to supervisor context 
+vcf context use "$SUPERVISOR_CONTEXT":"$SUPERVISOR_NAMESPACE_NAME"
+
+# Delete VKS cluster
+kubectl delete "$CLUSTER_NAME"
+```
+
+
+## Troubleshooting
+
+### Useful Commands
+```shell
+# List all
+kubectl get all
+
+# Get detailed pod information
+kubectl get pods -o wide
+
+# Get container logs
+kubectl logs -f <container name>
+
+# Get all services
+kubectl get svc
+
+# Expose a service
+kubectl expose service <service_name>  --type=LoadBalancer --name=<service_name>-external
+
+# Get the external IP
+kubectl get svc <service_name>-external
+
+# Get TKR releases
+kubectl get tkr -l '!kubernetes.vmware.com/kubernetesrelease'
+
+# Get TKE releaase specs
+# e.g. kubectl get tkr 'v1.34.1---vmware.1-vkr.4' -o yaml
+kubectl get tkr TKR_NAME -o yaml  
 ```
