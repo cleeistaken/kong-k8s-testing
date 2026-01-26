@@ -306,6 +306,7 @@ gateway.gateway.networking.k8s.io/kong created
 ### 7. Create Certificate 
 Create a certificate for Kong from cert-manager. Here we create a self-signed certificate (amend as needed)
 ```bash
+# Here we'll create a self-signed cluster issuer
 kubectl apply -f - <<'EOF'
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -315,6 +316,8 @@ spec:
   selfSigned: {}
 EOF
 
+
+# Create a certificate using the self-signed issuer
 kubectl apply -f - <<'EOF'
 apiVersion: cert-manager.io/v1
 kind: Certificate
